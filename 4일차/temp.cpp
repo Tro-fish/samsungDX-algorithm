@@ -1,117 +1,101 @@
 #include <iostream>
-#include <math.h>
-#include <cstring>
+#include <queue>
 #include <vector>
-#include <algorithm>
-#define MAX 12
-#define INF 987654321
+#include <cstring>
+ 
 using namespace std;
-
-struct node
+ 
+int testcase, n;
+string s;
+char game[301][301];
+int visited[301][301] = {0, };
+int dx[8] = {0, 0, -1, 1, -1, 1, -1, 1};
+int dy[8] = {-1, 1, 0, 0, -1, 1, 1, -1};
+int num = 0;
+ 
+// 주위 8칸에 모두 지뢰가 없는지 확인
+bool check(int x, int y)
 {
-    int x, y;                              // core의 x,y 좌표
-    node(int _x, int _y) : x(_x), y(_y) {} // 구조체 생성자
+    for(int i=0; i<8; i++)
+    {
+        int nx = x+dx[i];
+        int ny = y+dy[i];
+        if(0<=nx && nx<n && 0<=ny && ny<n) // 이동할수 없거나
+        {
+            if(game[nx][ny]=='*') //지뢰일 경우
+            {
+                return false; // 0이 될수 없다
+            }
+        }
+    }
+    return true;
+}   
+ 
+void play()
+{
+    // 주위 8칸에 지뢰가 없는 빈칸을 찾는다.
+    for(int i=0; i<n; i++)
+    {
+        for(int j=0; j<n; j++)
+        {
+            //방문을 안한 0일때
+            if(!visited[i][j] && game[i][j]=='.' && check(i, j))
+            {
+                num++;
+                // visited[i][j] = 1;
+                queue<pair<int, int>> q;
+                q.push(make_pair(i, j)); //0의 위치를 queue에 삽입
+ 
+                while(!q.empty())
+                {
+                    //queue의 head에서 0을 꺼내서 방문
+                    int x = q.front().first;
+                    int y = q.front().second;
+                    visited[x][y] = 1;
+                    q.pop();
+                    for(int k=0; k<8; k++) // 0 주위의 8칸 방문
+                    {
+                        int nx = x+dx[k];
+                        int ny = y+dy[k];
+                        if(0<=nx && nx<n && 0<=ny && ny<n && !visited[nx][ny] && game[nx][ny]=='.'){
+                            visited[nx][ny] = 1;
+                            if(check(nx, ny)) // 주위의 0
+                            { 
+                                q.push(make_pair(nx, ny));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
-
-int map[MAX][MAX];
-int dx[4] = {0, 0, 1, -1};
-int dy[4] = {1, -1, 0, 0};
-int conneted_core_result = 0;
-int length_result = 0;
-vector<node> core;
-
-dfs(int index, int checked_core, int connected_core, int length)
+ 
+int main()
 {
-    if(checked_core == core.size()) // 모든 core의 검사가 끝난 경우
-    {
-        // 더 많은 코어를 연결 했을 경우
-        if(connected_core > conneted_core_result)
-        {
-            conneted_core_result = connected_core;
-            length_result = length;
+    cin>>testcase;
+    for(int i=0; i<testcase; i++){
+        num = 0;
+        memset(visited, 0, sizeof(visited));
+        cin>>n;
+        for(int j=0; j<n; j++){
+            cin>>s;
+            for(int k=0; k<s.size(); k++){
+                game[j][k] = s[k];
+            }
         }
-        // 코어의 갯수는 같지만 연결 길이가 더 짧을 경우
-        else if(connected_core == conneted_core_result)
+ 
+        play();
+        for(int j=0; j<n; j++)
         {
-            conneted_core_result = connected_core;
-            length_result = min(length_result, length);
+            for(int k=0; k<n; k++)
+            {
+                if(!visited[j][k] && game[j][k]=='.')
+                {
+                    num++; // 아직 방문 안된것들 개별적으로 방문
+                }
+            }
         }
-        // 코어의 수가 더 적을 경우
-        else
-        {
-            return;
-        }
-        return;
+        cout<<"#"<<i+1<<" "<<num<<"\n";
     }
-
-    for (int i = 0; i < 4; i++) // 상하좌우로 이동
-    {
-        vector<node> connected;
-        bool connect = false;
-        int nx = core[index].x;
-        int ny = core[index].y;
-        while (1) // 연결 가능한거는 다 찾기
-        {
-            // 현재 연결이 된 경우
-            if (nx == 0 || ny == 0 || nx == n - 1 || ny == n - 1)
-            {
-                connect = true;
-                break;
-            }
-            // 상하좌우로 이동
-            nx += dx[i];
-            ny += dy[i];
-            // 이동 할 수 있는 경우
-            if(map[nx][ny] == 0)
-            {
-                connected.push_back(node(nx,ny));
-            }
-            //이동 할 수 없는 경우
-            else
-            {
-                break;
-            }
-        }
-        if(connect) //연결 할 수 있는 코어가 있을 경우
-        {
-            // 전선 연결
-            for(int j=0;j<connected.size();j++)
-            {
-                map[connected[j].x][connected[j].y] = 2;
-            }
-            dfs(index+1,checked_core+1,connected_core+1,length + (int)connected.size());
-            // 전선 해제
-            for(int j=0;j<connected.size();j++)
-            {
-                map[connected[j].x][connected[j].y] = 0;
-            }
-        }
-    }
-dfs(index+1,checked_core+1,connected_core,length);
-    
-}
-
-int main(void)
-{
-    // cin,cout 속도향상
-    ios_base::sync_with_stdio(false);
-    cin.tie(NULL);
-    cout.tie(NULL);
-    core.clear(); // 구조체 초기화
-    cin >> n;
-    for (int i = 0; i < n; i++)
-    {
-        for (int j = 0; j < n; j++)
-        {
-            cin >> map[i][j];
-            if (map[i][j] == 1)
-            {
-                // 가장자리 코어들은 제외
-                if (i == 0 || j == 0 || i == n - 1 || j == n - 1)
-                    continue;
-                core.push_back(node(i, j)); // 코어 삽입
-            }
-        }
-    }
-    dfs(0, 0, 0, 0);
 }
